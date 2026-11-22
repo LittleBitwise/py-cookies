@@ -5,7 +5,7 @@ import os
 import sys
 import configparser
 import sqlite3
-from http.cookiejar import Cookie, CookieJar
+from http.cookiejar import Cookie, MozillaCookieJar
 
 import lz4.block
 
@@ -52,9 +52,9 @@ def _cookie(
     )
 
 
-def _cookies_from(cookie_file: Path, domain: str = "") -> CookieJar:
-    """Returns a CookieJar containing cookies from the given Firefox cookies.sqlite file."""
-    jar = CookieJar()
+def _cookies_from(cookie_file: Path, domain: str = "") -> MozillaCookieJar:
+    """Returns a MozillaCookieJar containing cookies from the given Firefox cookies.sqlite file."""
+    jar = MozillaCookieJar()
 
     with closing(
         sqlite3.connect(cookie_file.resolve().as_uri() + "?mode=ro", uri=True)
@@ -112,7 +112,7 @@ def _cookie_file() -> Path | None:
     return None
 
 
-def load_cookies_from_firefox(domain: str = "") -> CookieJar:
+def load_cookies_from_firefox(domain: str = "") -> MozillaCookieJar:
     """Returns cookies from Firefox for the given domain,
     or all cookies if no domain is specified. Domains are normalized before filtering.
     """
