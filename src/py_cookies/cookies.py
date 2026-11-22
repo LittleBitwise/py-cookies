@@ -26,7 +26,7 @@ def _cookie(
     host: str,
     path: str,
     isSecure: bool,
-    expiry: int,
+    expiry: int | None,
     name: str,
     value: str,
     isHttpOnly: bool,
@@ -40,12 +40,15 @@ def _cookie(
         path=path,
         secure=bool(isSecure),
         expires=expiry,
-        rest={"HttpOnly": isHttpOnly} if isHttpOnly else {},
-        # extra, todo remove?
+        rest={"HttpOnly": str(isHttpOnly)} if isHttpOnly else {},
         domain_specified=host.startswith("."),
         domain_initial_dot=host.startswith("."),
         path_specified=bool(path),
         discard=expiry is None,
+        port=None,
+        port_specified=False,
+        comment=None,
+        comment_url=None,
     )
 
 
@@ -65,7 +68,7 @@ def _cookies_from(cookie_file: Path, domain: str = "") -> CookieJar:
     return jar
 
 
-def _cookie_file() -> Path:
+def _cookie_file() -> Path | None:
     """Returns the path to the Firefox cookies.sqlite file on Windows."""
 
     if not (directory := os.environ.get("APPDATA") or os.environ.get("LOCALAPPDATA")):
@@ -102,7 +105,7 @@ def _cookie_file() -> Path:
 
     for profile in profile_paths:
         # Profile paths can be relative or absolute.
-        # Pathlib discards the previous path if the next one is absolute, so we can just join these.
+        # Pathlib discards the previous path if the next one is absolute, so we can join these.
         candidate = firefox / profile / "cookies.sqlite"
         if candidate.is_file():
             return candidate
@@ -110,7 +113,9 @@ def _cookie_file() -> Path:
 
 
 def load_cookies_from_firefox(domain: str = "") -> CookieJar:
-    """Returns cookies from Firefox for the given domain, or all cookies if no domain is specified. Domains are normalized before filtering."""
+    """Returns cookies from Firefox for the given domain,
+    or all cookies if no domain is specified. Domains are normalized before filtering.
+    """
     if sys.platform != "win32":
         raise NotImplementedError("This function is only implemented for Windows.")
 
