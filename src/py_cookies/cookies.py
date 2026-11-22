@@ -46,16 +46,11 @@ def _cookie(
         domain_initial_dot=host.startswith("."),
         path_specified=bool(path),
         discard=expiry is None,
-        port=None,
-        port_specified=False,
-        comment=None,
-        comment_url=None,
     )
 
 
 def _cookies_from(cookie_file: Path, domain: str = "") -> CookieJar:
     """Returns a CookieJar containing cookies from the given Firefox cookies.sqlite file."""
-
     jar = CookieJar()
 
     with closing(
@@ -107,17 +102,15 @@ def _cookie_file() -> Path:
 
     for profile in profile_paths:
         # Profile paths can be relative or absolute.
-        # Pathlib discards the previous path if the new one is absolute, so we can just join these.
+        # Pathlib discards the previous path if the next one is absolute, so we can just join these.
         candidate = firefox / profile / "cookies.sqlite"
         if candidate.is_file():
             return candidate
-
     return None
 
 
 def load_cookies_from_firefox(domain: str = "") -> CookieJar:
     """Returns cookies from Firefox for the given domain, or all cookies if no domain is specified. Domains are normalized before filtering."""
-
     if sys.platform != "win32":
         raise NotImplementedError("This function is only implemented for Windows.")
 
@@ -131,15 +124,13 @@ def load_cookies_from_firefox(domain: str = "") -> CookieJar:
         cookie_file.parent / "sessionstore-backups" / "recovery.jsonlz4",
     ):
         if not session.is_file():
-            continue
+            continue  # ignore missing session cookies
 
         data = session.read_bytes()
         if session.suffix == ".jsonlz4" and data[:8] == b"mozLz40\0":
             data = lz4.block.decompress(data[8:])
         else:
-            raise FileNotFoundError(
-                "Neither sessionstore nor valid recovery file found."
-            )
+            continue  # ignore invalid recovery file
 
         session_state: dict = json.loads(data)
         session_cookies: list = session_state.get("cookies", [])
