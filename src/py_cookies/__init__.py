@@ -1,2 +1,3 @@
-def main() -> None:
-    print("Hello from py-cookies!")
+from .cookies import load_cookies_from_firefox
+
+__all__ = ["load_cookies_from_firefox"]

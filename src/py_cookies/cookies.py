@@ -103,7 +103,7 @@ def _cookie_file() -> Path:
     return None
 
 
-def load_cookies_firefox(domain: str) -> dict:
+def load_cookies_from_firefox(domain: str) -> dict:
     """Expects values like example.com or sub.example.com"""
 
     if sys.platform != "win32":
@@ -148,3 +148,4 @@ def load_cookies_firefox(domain: str) -> dict:
                         cookie.get("httponly", False),
                     )
                 )
+    return jar
