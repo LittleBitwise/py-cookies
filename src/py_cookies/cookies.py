@@ -10,6 +10,18 @@ from http.cookiejar import Cookie, CookieJar
 import lz4.block
 
 
+def _domain_matches(host: str, domain: str) -> bool:
+    """Normalize and check domain strings."""
+    if not domain:
+        return True  # Empty string matches all.
+
+    host = host.strip().lower().lstrip(".")
+    domain = domain.strip().lower().lstrip(".")
+
+    # Empty domain, exact match, or host is subdomain.
+    return not domain or host == domain or host.endswith("." + domain)
+
+
 def _cookie(
     host: str,
     path: str,
@@ -51,10 +63,10 @@ def _cookies_from(cookie_file: Path, domain: str = "") -> CookieJar:
     ) as conn:
         for row in conn.execute(
             "SELECT host, path, isSecure, expiry, name, value, isHttpOnly "
-            "FROM moz_cookies WHERE instr(lower(host), lower(?)) > 0",
-            (domain,),
+            "FROM moz_cookies"
         ):
-            jar.set_cookie(_cookie(*row))
+            if _domain_matches(row[0], domain):
+                jar.set_cookie(_cookie(*row))
     return jar
 
 
@@ -103,8 +115,8 @@ def _cookie_file() -> Path:
     return None
 
 
-def load_cookies_from_firefox(domain: str) -> dict:
-    """Expects values like example.com or sub.example.com"""
+def load_cookies_from_firefox(domain: str = "") -> CookieJar:
+    """Returns cookies from Firefox for the given domain, or all cookies if no domain is specified. Domains are normalized before filtering."""
 
     if sys.platform != "win32":
         raise NotImplementedError("This function is only implemented for Windows.")
@@ -129,14 +141,14 @@ def load_cookies_from_firefox(domain: str) -> dict:
                 "Neither sessionstore nor valid recovery file found."
             )
 
-        state: dict = json.loads(data)
-        cookies: list = state.get("cookies", [])
-        for window in state.get("windows", []):
-            cookies.extend(window.get("cookies", []))
+        session_state: dict = json.loads(data)
+        session_cookies: list = session_state.get("cookies", [])
+        for window in session_state.get("windows", []):
+            session_cookies.extend(window.get("cookies", []))
 
-        for cookie in cookies:
+        for cookie in session_cookies:
             host = cookie.get("host", "")
-            if domain.lower() in host.lower():
+            if _domain_matches(host, domain):
                 jar.set_cookie(
                     _cookie(
                         host,

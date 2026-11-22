@@ -11,7 +11,6 @@ if __name__ == "__main__":
     argument = input("Enter domain: ")
     if argument:
         cookies = load(argument)
-        print(cookies)
         print("Cookies:", len(cookies))
     else:
         print("No domain provided.")
